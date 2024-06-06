@@ -10,17 +10,16 @@ const totalUsersRef = document.querySelector<HTMLVideoElement>("#text")!
 
 const io = socketIO()
 
+// const peer = new Peer({
+//   host: "/",
+//   port: 3000,
+//   secure: true,
+// })
+
 const peer = new Peer({
-  host: "/",
-  port: 3000,
+  host: "ztv-peer.onrender.com",
   secure: true,
 })
-
-// const peer = new Peer({
-//   host: "ztv-peer.onrender.com",
-//   secure: true,
-//   // port: 80,
-// })
 
 let localPeerId: string | null = null
 let localStream: MediaStream | null = null
