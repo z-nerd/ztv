@@ -1,0 +1,43 @@
+:host {
+  --btn-color: var(--g-btn-color, blue);
+}
+
+.container {
+  display: grid;
+  width: 100%;
+  grid-template-areas:
+    "counter counter"
+    "decrease increase";
+  grid-template-rows: 40px 50px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.counter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  grid-area: counter;
+}
+
+.increase {
+  grid-area: increase;
+}
+
+.decrease {
+  grid-area: decrease;
+}
+
+button {
+  color: white;
+  background: var(--btn-color);
+  outline-style: none;
+  border: none;
+
+  &:hover {
+    opacity: 0.85;
+  }
+
+  &:active {
+    opacity: 0.6;
+  }
+}
