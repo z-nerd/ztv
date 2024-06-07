@@ -9,7 +9,6 @@ const cmd = (command, path = process.cwd()) =>
 
 cmd("yarn server:build")
 cmd("yarn ui:build")
-cmd("yarn peer:build")
 
 rmSync(`${process.cwd()}/dist`, {
   force: true,
