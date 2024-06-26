@@ -6,11 +6,13 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.js",
+    "dev": "concurrently --kill-others \"npm:server:dev\" \"npm:ui:dev\"",
     "start": "node scripts/start.js",
     "ui:dev": "yarn workspace @ztv/ui dev",
     "ui:build": "yarn workspace @ztv/ui build",
     "server:build": "yarn workspace @ztv/server build",
-    "server:dev": "yarn workspace @ztv/server dev"
+    "server:dev": "yarn workspace @ztv/server dev",
+    "kill:3000": "fuser -k -n tcp 3000"
   },
   "workspaces": [
     "packages/*"

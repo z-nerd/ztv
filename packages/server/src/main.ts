@@ -7,12 +7,15 @@ import { ztvRoom } from "./handler/ztvRoom"
 import { totalUsers } from "./handler/totalUsers"
 // import { ExpressPeerServer } from "peer"
 
+const environment = process.env.NODE_ENV
+const isDevelopment = environment === "development"
+
 export interface ZtvRoomUsers {
   id: string
 }
 
 let ztvRoomUsers: ZtvRoomUsers[] = []
-const port = 80
+const port = isDevelopment ? 3000 : 80
 const app = new Hono()
 
 const server = serve(
@@ -25,7 +28,17 @@ const server = serve(
   },
 )
 
-const io = new Server(server)
+const io = new Server(
+  server,
+  isDevelopment
+    ? {
+        cors: {
+          origin: "*",
+        },
+      }
+    : {},
+)
+
 // const peerServer = ExpressPeerServer(server, {
 //   host: "/",
 //   port,

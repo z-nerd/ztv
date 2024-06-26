@@ -2,6 +2,10 @@ import "./reset.scss"
 import "./app.scss"
 import { RTCWrapper } from "./RTCWrapper"
 import socketIO from "socket.io-client"
+
+const environment = process.env.NODE_ENV
+const isDevelopment = environment === "development"
+
 const localVideoRef = document.querySelector<HTMLVideoElement>("#self")!
 const remoteVideoRef = document.querySelector<HTMLVideoElement>("#stranger")!
 const totalUsersRef = document.querySelector<HTMLVideoElement>("#text")!
@@ -22,7 +26,7 @@ const rtcWrapper = new RTCWrapper({
 })
 let localStream: MediaStream
 let remoteStream: MediaStream
-const io = socketIO()
+const io = socketIO(isDevelopment ? "ws://localhost:3000" : "")
 
 const init = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({
