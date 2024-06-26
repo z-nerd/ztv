@@ -3,9 +3,9 @@ import { Hono } from "hono"
 import { serveStatic } from "@hono/node-server/serve-static"
 import { Server } from "socket.io"
 import { join as pathJoin } from "path"
-import { ztvRoom } from "./handler/ztvRoom"
-import { totalUsers } from "./handler/totalUsers"
-// import { ExpressPeerServer } from "peer"
+import { EventMapServer, emitServerFn } from "@ztv/utilities"
+// import { ztvRoom } from "./handler/ztvRoom"
+// import { totalUsers } from "./handler/totalUsers"
 
 const environment = process.env.NODE_ENV
 const isDevelopment = environment === "development"
@@ -37,7 +37,7 @@ const io = new Server(
         },
       }
     : {},
-)
+) as Server<EventMapServer>
 
 // const peerServer = ExpressPeerServer(server, {
 //   host: "/",
@@ -75,12 +75,19 @@ app.get("/api/hello", (c) => {
 })
 
 io.on("connection", (socket) => {
-  ztvRoom(io, socket)
-  ztvRoomUsers.push({ id: socket.id })
-  totalUsers(io, ztvRoomUsers)
+  const emit = emitServerFn(socket)
+  const quitRoomEmit = emit("quit-room")
 
-  socket.on("disconnect", () => {
-    ztvRoomUsers = ztvRoomUsers.filter((item) => item.id !== socket.id)
-    totalUsers(io, ztvRoomUsers)
+  socket.on("join-room", ({ room }) => {
+    console.log("join-room:", room)
+    quitRoomEmit({ room })
   })
+  // ztvRoom(io, socket)
+  // ztvRoomUsers.push({ id: socket.id })
+  // totalUsers(io, ztvRoomUsers)
+  //
+  // socket.on("disconnect", () => {
+  //   ztvRoomUsers = ztvRoomUsers.filter((item) => item.id !== socket.id)
+  //   totalUsers(io, ztvRoomUsers)
+  // })
 })

@@ -7,6 +7,7 @@ const cmd = (command, path = process.cwd()) =>
     cwd: path,
   })
 
+cmd("yarn utilities:build")
 cmd("yarn server:build")
 cmd("yarn ui:build")
 

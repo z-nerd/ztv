@@ -1,10 +1,16 @@
 import "./reset.scss"
 import "./app.scss"
 import { RTCWrapper } from "./RTCWrapper"
-import socketIO from "socket.io-client"
+import socketIO, { Socket } from "socket.io-client"
+import { v4 as uuid } from "uuid"
+import { EventMapClient, emitClientFn } from "@ztv/utilities"
 
 const environment = process.env.NODE_ENV
 const isDevelopment = environment === "development"
+
+const urlParams = new URLSearchParams(window.location.search)
+let roomId = urlParams.get("roomId")!
+if (!roomId) document.location = `?roomId=${uuid()}`
 
 const localVideoRef = document.querySelector<HTMLVideoElement>("#self")!
 const remoteVideoRef = document.querySelector<HTMLVideoElement>("#stranger")!
@@ -26,7 +32,12 @@ const rtcWrapper = new RTCWrapper({
 })
 let localStream: MediaStream
 let remoteStream: MediaStream
-const io = socketIO(isDevelopment ? "ws://localhost:3000" : "")
+const io = socketIO(
+  isDevelopment ? "ws://localhost:3000" : "",
+) as Socket<EventMapClient>
+
+const emit = emitClientFn(io)
+const joinRoomEmit = emit("join-room")
 
 const init = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({
@@ -50,23 +61,31 @@ const init = async () => {
 
   await rtcWrapper.makeOffer()
 
-  io.on("ztv-stream", async ({ id, localDescription }) => {
-    if (id !== io.id) {
-      const answer = await rtcWrapper.makeAnswer(localDescription)
-      rtcWrapper.addAnswer(answer)
-    }
-  })
+  // io.on("ztv-stream", async ({ id, localDescription }) => {
+  //   if (id !== io.id) {
+  //     const answer = await rtcWrapper.makeAnswer(localDescription)
+  //     rtcWrapper.addAnswer(answer)
+  //   }
+  // })
 }
 
 init()
 
-io.on("totalUsers", (e) => {
-  totalUsersRef.innerHTML = e
+io.on("connect", () => {
+  joinRoomEmit({ room: roomId })
 })
 
-setTimeout(() => {
-  io.emit("join-ztv", {
-    id: io.id,
-    localDescription: rtcWrapper.localDescription,
-  })
-}, 6000)
+io.on("quit-room", ({ room }) => {
+  console.log("quit-room:", room)
+})
+
+// io.on("totalUsers", (e) => {
+//   totalUsersRef.innerHTML = e
+// })
+//
+// setTimeout(() => {
+//   io.emit("join-ztv", {
+//     id: io.id,
+//     localDescription: rtcWrapper.localDescription,
+//   })
+// }, 6000)
