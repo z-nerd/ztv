@@ -72,11 +72,18 @@ const init = async () => {
 init()
 
 io.on("connect", () => {
-  joinRoomEmit({ room: roomId })
+  joinRoomEmit(
+    {
+      room: roomId,
+    },
+    (res) => {
+      console.log(res.status)
+    },
+  )
 })
 
-io.on("quit-room", ({ room }) => {
-  console.log("quit-room:", room)
+io.on("unavailable-room", () => {
+  alert("Room unavailable!")
 })
 
 // io.on("totalUsers", (e) => {

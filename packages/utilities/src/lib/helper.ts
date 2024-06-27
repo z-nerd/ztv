@@ -2,14 +2,20 @@ import { Socket as ServerSocket } from "socket.io"
 import { Socket as ClientSocket } from "socket.io-client"
 import { EmitMapClient, EmitMapServer } from "./events"
 
+export interface EmitServerFnOption {
+  broadcast?: boolean
+}
+
 export function emitServerFn(
   socket: ServerSocket,
 ): <K extends keyof EmitMapServer>(
   event: K,
-) => (data: EmitMapServer[K]) => void {
+) => (data: EmitMapServer[K], emitServerFnOption?: EmitServerFnOption) => void {
   return function (event) {
-    return function (data) {
-      socket.broadcast.emit(event, data)
+    return function (data, emitServerFnOption = {}) {
+      emitServerFnOption.broadcast ??= false
+      if (emitServerFnOption.broadcast) socket.broadcast.emit(event, data)
+      else socket.emit(event, data)
     }
   }
 }
@@ -18,10 +24,10 @@ export function emitClientFn(
   socket: ClientSocket,
 ): <K extends keyof EmitMapClient>(
   event: K,
-) => (data: EmitMapClient[K]) => void {
+) => (data: EmitMapClient[K]["data"], cb?: EmitMapClient[K]["cb"]) => void {
   return function (event) {
-    return function (data) {
-      socket.emit(event, data)
+    return function (data, cb) {
+      socket.emit(event, data, cb)
     }
   }
 }

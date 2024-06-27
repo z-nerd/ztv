@@ -76,12 +76,20 @@ app.get("/api/hello", (c) => {
 
 io.on("connection", (socket) => {
   const emit = emitServerFn(socket)
-  const quitRoomEmit = emit("quit-room")
+  const unavailableRoomEmit = emit("unavailable-room")
 
-  socket.on("join-room", ({ room }) => {
-    console.log("join-room:", room)
-    quitRoomEmit({ room })
+  socket.on("join-room", async ({ room }, cb) => {
+    const socketsInRoom = await io.in(room).fetchSockets()
+
+    if (socketsInRoom.length < 2) {
+      socket.join(room)
+      if (cb) cb({ status: "joined" })
+    } else {
+      if (cb) cb({ status: "unavailable" })
+      unavailableRoomEmit({})
+    }
   })
+
   // ztvRoom(io, socket)
   // ztvRoomUsers.push({ id: socket.id })
   // totalUsers(io, ztvRoomUsers)
