@@ -18,15 +18,22 @@ const remoteVideoRef = document.querySelector<HTMLVideoElement>("#remote")!
 let peerCfg: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun.l.google.com:5349" },
-    { urls: "stun:stun1.l.google.com:3478" },
-    { urls: "stun:stun1.l.google.com:5349" },
+    { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:5349" },
-    { urls: "stun:stun3.l.google.com:3478" },
-    { urls: "stun:stun3.l.google.com:5349" },
+    { urls: "stun:stun3.l.google.com:19302" },
     { urls: "stun:stun4.l.google.com:19302" },
+
+    { urls: "stun:stun.l.google.com:5349" },
+    { urls: "stun:stun1.l.google.com:5349" },
+    { urls: "stun:stun2.l.google.com:5349" },
+    { urls: "stun:stun3.l.google.com:5349" },
     { urls: "stun:stun4.l.google.com:5349" },
+
+    { urls: "stun:stun.l.google.com:3478" },
+    { urls: "stun:stun1.l.google.com:3478" },
+    { urls: "stun:stun2.l.google.com:3478" },
+    { urls: "stun:stun3.l.google.com:3478" },
+    { urls: "stun:stun4.l.google.com:3478" },
   ],
 }
 let peerCon: RTCPeerConnection
@@ -46,16 +53,19 @@ const icecandidateChangeEmit = emit("icecandidate-change")
 const getUserMedia = () => {
   return new Promise(async (resolve: (stream: MediaStream) => void, reject) => {
     try {
-      resolve(
-        await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: false,
-          },
-        }),
-      )
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false,
+        },
+      })
+
+      localStream = stream
+      localVideoRef.srcObject = localStream
+
+      resolve(stream)
     } catch (err) {
       reject(err)
     }
@@ -68,8 +78,7 @@ const createPeerConnection = (
   return new Promise(
     async (resolve: (pc: RTCPeerConnection) => void, reject) => {
       try {
-        localStream = await getUserMedia()
-        localVideoRef.srcObject = localStream
+        await getUserMedia()
 
         remoteStream = new MediaStream()
         remoteVideoRef.srcObject = remoteStream
