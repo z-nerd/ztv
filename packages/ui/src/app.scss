@@ -9,7 +9,7 @@ body {
   height: 100dvh;
 }
 
-#stranger {
+#remote {
   position: absolute;
   inset-block-start: 0px;
   inset-inline-start: 0px;
@@ -18,7 +18,7 @@ body {
   object-fit: cover;
 }
 
-#self {
+#local {
   position: absolute;
   width: 100px;
   inset-block-end: 0px;

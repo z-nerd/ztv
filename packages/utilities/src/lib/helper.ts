@@ -3,6 +3,7 @@ import { Socket as ClientSocket } from "socket.io-client"
 import { EmitMapClient, EmitMapServer } from "./events"
 
 export interface EmitServerFnOption {
+  room?: string
   broadcast?: boolean
 }
 
@@ -14,7 +15,9 @@ export function emitServerFn(
   return function (event) {
     return function (data, emitServerFnOption = {}) {
       emitServerFnOption.broadcast ??= false
-      if (emitServerFnOption.broadcast) socket.broadcast.emit(event, data)
+      if (emitServerFnOption.room)
+        socket.to(emitServerFnOption.room).emit(event, data)
+      else if (emitServerFnOption.broadcast) socket.broadcast.emit(event, data)
       else socket.emit(event, data)
     }
   }

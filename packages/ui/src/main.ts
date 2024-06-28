@@ -1,6 +1,5 @@
 import "./reset.scss"
 import "./app.scss"
-import { RTCWrapper } from "./RTCWrapper"
 import socketIO, { Socket } from "socket.io-client"
 import { v4 as uuid } from "uuid"
 import { EventMapClient, emitClientFn } from "@ztv/utilities"
@@ -12,11 +11,11 @@ const urlParams = new URLSearchParams(window.location.search)
 let roomId = urlParams.get("roomId")!
 if (!roomId) document.location = `?roomId=${uuid()}`
 
-const localVideoRef = document.querySelector<HTMLVideoElement>("#self")!
-const remoteVideoRef = document.querySelector<HTMLVideoElement>("#stranger")!
-const totalUsersRef = document.querySelector<HTMLVideoElement>("#text")!
+const localVideoRef = document.querySelector<HTMLVideoElement>("#local")!
+const remoteVideoRef = document.querySelector<HTMLVideoElement>("#remote")!
+// const totalUsersRef = document.querySelector<HTMLVideoElement>("#text")!
 
-const rtcWrapper = new RTCWrapper({
+let peerCfg: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun.l.google.com:5349" },
@@ -29,70 +28,115 @@ const rtcWrapper = new RTCWrapper({
     { urls: "stun:stun4.l.google.com:19302" },
     { urls: "stun:stun4.l.google.com:5349" },
   ],
-})
+}
+let peerCon: RTCPeerConnection
 let localStream: MediaStream
 let remoteStream: MediaStream
+
 const io = socketIO(
   isDevelopment ? "ws://localhost:3000" : "",
 ) as Socket<EventMapClient>
 
 const emit = emitClientFn(io)
 const joinRoomEmit = emit("join-room")
+const newOfferEmit = emit("new-offer")
+const newAnswerEmit = emit("new-answer")
+const icecandidateChangeEmit = emit("icecandidate-change")
 
-const init = async () => {
-  localStream = await navigator.mediaDevices.getUserMedia({
-    video: true,
-    audio: true,
+const getUserMedia = () => {
+  return new Promise(async (resolve: (stream: MediaStream) => void, reject) => {
+    try {
+      resolve(
+        await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        }),
+      )
+    } catch (err) {
+      reject(err)
+    }
   })
-  remoteStream = new MediaStream()
-
-  localVideoRef.srcObject = localStream
-  remoteVideoRef.srcObject = remoteStream
-
-  localStream.getTracks().forEach((track) => {
-    rtcWrapper.addTrack(track, localStream)
-  })
-
-  rtcWrapper.ontrack = (event) => {
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track)
-    })
-  }
-
-  await rtcWrapper.makeOffer()
-
-  // io.on("ztv-stream", async ({ id, localDescription }) => {
-  //   if (id !== io.id) {
-  //     const answer = await rtcWrapper.makeAnswer(localDescription)
-  //     rtcWrapper.addAnswer(answer)
-  //   }
-  // })
 }
 
-init()
+const createPeerConnection = (
+  offer: RTCSessionDescriptionInit | undefined = undefined,
+) => {
+  return new Promise(
+    async (resolve: (pc: RTCPeerConnection) => void, reject) => {
+      try {
+        localStream = await getUserMedia()
+        localVideoRef.srcObject = localStream
+
+        remoteStream = new MediaStream()
+        remoteVideoRef.srcObject = remoteStream
+
+        peerCon = new RTCPeerConnection(peerCfg)
+        localStream.getTracks().forEach((track) => {
+          peerCon.addTrack(track, localStream)
+        })
+
+        // peerCon.addEventListener("signalingstatechange", (event) => {})
+
+        peerCon.addEventListener("icecandidate", (e) => {
+          if (e.candidate) icecandidateChangeEmit({ icecandidate: e.candidate })
+        })
+
+        peerCon.addEventListener("track", (e) => {
+          e.streams[0].getTracks().forEach((track) => {
+            remoteStream.addTrack(track)
+          })
+        })
+
+        if (offer) {
+          await peerCon.setRemoteDescription(offer)
+        }
+        resolve(peerCon)
+      } catch (err) {
+        reject(err)
+      }
+    },
+  )
+}
 
 io.on("connect", () => {
   joinRoomEmit(
     {
       room: roomId,
     },
-    (res) => {
-      console.log(res.status)
+    async ({ status }) => {
+      if (status === "joined") await getUserMedia()
     },
   )
 })
 
-io.on("unavailable-room", () => {
-  alert("Room unavailable!")
+io.on("create-offer", async () => {
+  await createPeerConnection()
+
+  try {
+    const offer = await peerCon.createOffer()
+    peerCon.setLocalDescription(offer)
+    newOfferEmit({ offer })
+  } catch (err) {
+    console.log(err)
+  }
 })
 
-// io.on("totalUsers", (e) => {
-//   totalUsersRef.innerHTML = e
-// })
-//
-// setTimeout(() => {
-//   io.emit("join-ztv", {
-//     id: io.id,
-//     localDescription: rtcWrapper.localDescription,
-//   })
-// }, 6000)
+io.on("answer-offer", async ({ offer }) => {
+  await createPeerConnection(offer)
+
+  try {
+    const answer = await peerCon.createAnswer()
+    await peerCon.setLocalDescription(answer)
+    newAnswerEmit({ answer })
+  } catch (err) {
+    console.log(err)
+  }
+})
+
+io.on("add-answer", async ({ answer }) => {
+  await peerCon.setRemoteDescription(answer)
+})
+
+io.on("add-icecandidate", async ({ icecandidate }) => {
+  if (peerCon) peerCon.addIceCandidate(icecandidate)
+})

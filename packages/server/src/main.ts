@@ -4,8 +4,6 @@ import { serveStatic } from "@hono/node-server/serve-static"
 import { Server } from "socket.io"
 import { join as pathJoin } from "path"
 import { EventMapServer, emitServerFn } from "@ztv/utilities"
-// import { ztvRoom } from "./handler/ztvRoom"
-// import { totalUsers } from "./handler/totalUsers"
 
 const environment = process.env.NODE_ENV
 const isDevelopment = environment === "development"
@@ -76,17 +74,42 @@ app.get("/api/hello", (c) => {
 
 io.on("connection", (socket) => {
   const emit = emitServerFn(socket)
-  const unavailableRoomEmit = emit("unavailable-room")
+  const createOfferEmit = emit("create-offer")
+  const answerOfferEmit = emit("answer-offer")
+  const addAnswerEmit = emit("add-answer")
+  const addIcecandidateEmit = emit("add-icecandidate")
 
   socket.on("join-room", async ({ room }, cb) => {
     const socketsInRoom = await io.in(room).fetchSockets()
 
-    if (socketsInRoom.length < 2) {
+    const totalUserInRoom = socketsInRoom.length
+    if (totalUserInRoom < 2) {
       socket.join(room)
-      if (cb) cb({ status: "joined" })
+      if (cb) cb({ status: "joined", totalUserInRoom })
+      if (totalUserInRoom === 1) createOfferEmit({}, { room })
     } else {
       if (cb) cb({ status: "unavailable" })
-      unavailableRoomEmit({})
+    }
+  })
+
+  socket.on("new-offer", ({ offer }) => {
+    let room = [...socket.rooms].at(1)
+    if (room) {
+      answerOfferEmit({ offer }, { room })
+    }
+  })
+
+  socket.on("new-answer", ({ answer }) => {
+    let room = [...socket.rooms].at(1)
+    if (room) {
+      addAnswerEmit({ answer }, { room })
+    }
+  })
+
+  socket.on("icecandidate-change", ({ icecandidate }) => {
+    let room = [...socket.rooms].at(1)
+    if (room) {
+      addIcecandidateEmit({ icecandidate }, { room })
     }
   })
 
