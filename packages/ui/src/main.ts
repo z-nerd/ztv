@@ -49,7 +49,11 @@ const getUserMedia = () => {
       resolve(
         await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: false,
+          },
         }),
       )
     } catch (err) {
