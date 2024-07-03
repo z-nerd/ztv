@@ -58,7 +58,14 @@ const getUserMedia = () => {
   return new Promise(async (resolve: (stream: MediaStream) => void, reject) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: {
+          frameRate: {
+            max: 60,
+          },
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false,
+        },
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -89,6 +96,7 @@ const createPeerConnection = (
 
         peerCon = new RTCPeerConnection(peerCfg)
         localStream.getTracks().forEach((track) => {
+          track.contentHint = "motion"
           peerCon.addTrack(track, localStream)
         })
 
