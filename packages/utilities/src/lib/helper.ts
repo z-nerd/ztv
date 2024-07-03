@@ -5,6 +5,7 @@ import { EmitMapClient, EmitMapServer } from "./events"
 export interface EmitServerFnOption {
   room?: string
   broadcast?: boolean
+  volatile?: boolean
 }
 
 export function emitServerFn(
@@ -15,10 +16,20 @@ export function emitServerFn(
   return function (event) {
     return function (data, emitServerFnOption = {}) {
       emitServerFnOption.broadcast ??= false
-      if (emitServerFnOption.room)
-        socket.to(emitServerFnOption.room).emit(event, data)
-      else if (emitServerFnOption.broadcast) socket.broadcast.emit(event, data)
-      else socket.emit(event, data)
+      emitServerFnOption.volatile ??= true
+
+      if (emitServerFnOption.room) {
+        if (emitServerFnOption.volatile)
+          socket.to(emitServerFnOption.room).volatile.emit(event, data)
+        else socket.to(emitServerFnOption.room).emit(event, data)
+      } else if (emitServerFnOption.broadcast) {
+        if (emitServerFnOption.volatile)
+          socket.broadcast.volatile.emit(event, data)
+        else socket.broadcast.emit(event, data)
+      } else {
+        if (emitServerFnOption.volatile) socket.volatile.emit(event, data)
+        else socket.emit(event, data)
+      }
     }
   }
 }
