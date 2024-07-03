@@ -61,6 +61,7 @@ const getUserMedia = () => {
         video: {
           frameRate: {
             max: 60,
+            min: 15,
           },
           echoCancellation: true,
           noiseSuppression: true,
@@ -100,12 +101,15 @@ const createPeerConnection = (
           peerCon.addTrack(track, localStream)
         })
 
-        // peerCon.addEventListener("signalingstatechange", (event) => {})
+        // peerCon.addEventListener("signalingstatechange", (e) => {})
 
         peerCon.addEventListener("icecandidate", async (e) => {
-          if (e.candidate) icecandidateChangeEmit({ icecandidate: e.candidate })
-          if (e.candidate && peerCon.remoteDescription)
-            peerCon.addIceCandidate(e.candidate)
+          if (e.candidate && peerCon.signalingState === "stable") {
+            icecandidateChangeEmit({ icecandidate: e.candidate })
+            peerCon
+              .addIceCandidate(e.candidate)
+              .catch((err) => console.error(err))
+          }
         })
 
         peerCon.addEventListener("track", (e) => {
