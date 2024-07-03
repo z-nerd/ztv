@@ -59,10 +59,9 @@ const getUserMedia = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          frameRate: {
-            max: 60,
-            min: 15,
-          },
+          // frameRate: {
+          //   max: 60,
+          // },
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: false,
